@@ -1,0 +1,99 @@
+create database Project1;
+use project1;
+show tables;
+# Write a query to fetch EMP_ID, FIRST_NAME, LAST_NAME, GENDER, and DEPARTMENT from the employee record table, and make a list of employees and details of their department. 
+select EMP_ID, FIRST_NAME, LAST_NAME, GENDER,DEPT from emp_record;
+
+#Write a query to fetch EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPARTMENT, and EMP_RATING if the EMP_RATING is  !.less than two 
+#• greater than four  
+#• between two and four  
+select EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPT, EMP_RATING from emp_record where emp_rating <2;
+select EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPT, EMP_RATING from emp_record where emp_rating >4;
+select EMP_ID, FIRST_NAME, LAST_NAME, GENDER, DEPT, EMP_RATING from emp_record where emp_rating between 2 and 4;
+
+# Write a query to concatenate the FIRST_NAME and the LAST_NAME of employees in the Finance department from the employee table and then give the resultant column alias as NAME.
+select concat(first_name,' ', last_name) from emp_record where dept='FINANCE';
+
+# Write a query to list down all the employees from the healthcare and finance departments using union. Take data from the employee record table.
+select first_name, last_name , DEPT from emp_record where dept='HEALTHCARE' OR DEPT='finance';
+
+# list down employee details such as EMP_ID, FIRST_NAME, LAST_NAME,  ROLE, DEPARTMENT, and EMP_RATING grouped by dept. Also include the respective employee rating along with the max emp rating for the department. 
+select EMP_ID, FIRST_NAME, LAST_NAME,  ROLE, DEPT, EMP_RATING, max(emp_rating) over (partition by dept) as max_emp_rating from emp_record order by emp_rating desc  ;
+
+#Write a query to calculate the minimum and the maximum salary of the employees in each role. Take data from the employee record table. 
+select max(salary),min(salary) ,role  from emp_record group by role;
+
+# assign ranks to each employee based on their experience. Take data from the employee record table. 
+select first_name,role,dept,exp, rank() over (order by exp desc) from emp_record;
+
+# create a view that displays employees in various countries whose salary is more than six thousand. Take data from the employee record table. 
+create view emplyoee_of_different_country as
+select first_name,country,role,salary from emp_record where salary >6000;
+
+#nested query to find employees with experience of more than ten years. Take data from the employee record table.
+select first_name, role,exp from emp_record where exp> 10;
+
+# create a stored procedure to retrieve the details of the employees whose  experience is more than three years. Take data from the employee record table.
+CREATE DEFINER=`root`@`localhost` PROCEDURE `emplyoee_expirence_above_3`()
+(BEGIN
+select first_name, role,exp from emp_record where exp> 3;
+END)
+
+
+
+# calculate the bonus for all the employees, based on their ratings and salaries (Use the formula: 5% of salary * employee rating).
+select concat(first_name,' ',last_name), role, salary, (salary*0.05*emp_rating) as bonus from emp_record;
+
+#  calculate the average salary distribution based on the continent and country. Take data from the employee record table.
+select country, avg(salary) from emp_record group by country;
+
+# Write a query to list the employees working on each project, including their EMP_ID, FIRST_NAME, LAST_NAME, and PROJECT_ID.
+select EMP_ID, FIRST_NAME, LAST_NAME,PROJECT_ID from emp_record left join proj_table on project_id=project_id;
+
+# Write a query to calculate the duration (in days) of each project from the Proj_table, including PROJECT_ID, PROJ_Name, START_DATE, CLOSURE_DATE, and duration.
+UPDATE Proj_table
+SET START_DATE = CASE
+    WHEN START_DATE LIKE '%-%-%' THEN DATE_FORMAT(STR_TO_DATE(START_DATE, '%d-%m-%Y'), '%Y/%m/%d')
+    WHEN START_DATE LIKE '%/%/%' THEN DATE_FORMAT(STR_TO_DATE(START_DATE, '%m/%d/%Y'), '%Y/%m/%d')
+    ELSE START_DATE
+END;
+UPDATE Proj_table
+SET closure_DATE = CASE
+    WHEN closure_DATE LIKE '%-%-%' THEN DATE_FORMAT(STR_TO_DATE(START_DATE, '%d-%m-%Y'), '%Y/%m/%d')
+    WHEN closure_DATE LIKE '%/%/%' THEN DATE_FORMAT(STR_TO_DATE(START_DATE, '%m/%d/%Y'), '%Y/%m/%d')
+    ELSE closure_DATE
+END;
+select project_id,proj_name,start_date, closure_date, datediff(start_date ,closure_date) as total_days from proj_table;
+
+#query to find the total years of experience for each department from the emp_record_table, including DEPT and total years of experience.
+select dept, sum(exp) from emp_record group by dept;
+
+# count the number of male and female employees in each department from the emp_record_table, including DEPT and gender count.
+select gender,dept, count(*) from emp_record group by dept,gender;
+
+#calculate the average performance rating for each department from the emp_record_table, including DEPT and average EMP_RATING.
+select  dept,avg(emp_rating) as avg_depparmatment_rating from emp_record group by dept;
+
+#find the minimum and maximum salaries of employees for each continent from the emp_record_table, including CONTINENT, minimum SALARY, and maximum SALARY.
+select  min(salary)as minimum_salary,max(salary)as maximum_salary ,continent from emp_record group by continent;
+
+#Write a query to list all projects along with their current status from the Proj_table, including PROJECT_ID, PROJ_Name, and STATUS
+select project_id,proj_name, status from proj_table;
+
+# list all employees with a salary higher than the average salary in their department from the emp_record_table, including EMP_ID, FIRST_NAME, LAST_NAME, DEPT, and SALARY.
+select e.emp_id,e.first_name,e.last_name,e.dept,e.salary from emp_record e
+join (select dept, avg(salary) as avg_salary from emp_record group by dept)
+avg_sal on e.dept=avg_sal.dept where e.salary> avg_salary;
+
+# list the managers along with the employees they manage from the emp_record_table, including MANAGER_ID and the corresponding EMP_ID, FIRST_NAME, and LAST_NAME.
+select emp_id, first_name, last_name, dept,manager_id from emp_record ;
+SELECT emp.MANAGER_ID, mgr.EMP_ID, mgr.FIRST_NAME, mgr.LAST_NAME
+FROM emp_record emp
+JOIN emp_record mgr ON emp.MANAGER_ID = mgr.EMP_ID;
+
+# list all projects from the Proj_table that are scheduled to be completed in the next 30 days, including PROJECT_ID, PROJ_Name, and CLOSURE_DATE.
+select project_id,proj_name,datediff(CLOSURE_DATE,START_DATE) as days from proj_table where days<30;
+SELECT PROJECT_ID, PROJ_Name, CLOSURE_DATE
+FROM proj_table
+WHERE CLOSURE_DATE BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY);
+
